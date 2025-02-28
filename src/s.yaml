@@ -1,0 +1,139 @@
+---
+edition: "3.0.0"
+name: "ollama-deepseek-r1-7b-and-14b"
+access: "default"
+vars:
+  region: "{{ region }}"
+  projectName: "{{ projectName }}"
+resources:
+  deepseek-r1:
+    component: "model"
+    actions: {}
+    props:
+      logConfig: "auto"
+      role: "acs:ram::${config(\"AccountID\")}:role/aliyundevsdefaultrole"
+      modelConfig:
+        framework: "ollama"
+        sourceType: "oss"
+        srcOssRegion: "cn-beijing"
+        srcOssBucket: "dipper-cache-cn-beijing"
+        fmkOllamaConfig:
+          modelName: "cap-deepseek-r1"
+          modelfileParams: "{\"num_ctx\": 131072,\"stop\":[\"<｜begin▁of▁sentence｜\
+            >\",\"<｜end▁of▁sentence｜>\",\"<｜User｜>\",\"<｜Assistant｜>\"]}"
+          singleModelFile: "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf"
+          modelfileTemplate: "e3stIGlmIC5TeXN0ZW0gfX17eyAuU3lzdGVtIH19e3sgZW5kIH19Cnt7LSByYW5nZSAkaSwgJF8gOj0gLk1lc3NhZ2VzIH19Cnt7LSAkbGFzdCA6PSBlcSAobGVuIChzbGljZSAkLk1lc3NhZ2VzICRpKSkgMX19Cnt7LSBpZiBlcSAuUm9sZSAidXNlciIgfX08772cVXNlcu+9nD57eyAuQ29udGVudCB9fQp7ey0gZWxzZSBpZiBlcSAuUm9sZSAiYXNzaXN0YW50IiB9fTzvvZxBc3Npc3RhbnTvvZw+e3sgLkNvbnRlbnQgfX17ey0gaWYgbm90ICRsYXN0IH19PO+9nGVuZOKWgW9m4paBc2VudGVuY2XvvZw+e3stIGVuZCB9fQp7ey0gZW5kIH19Cnt7LSBpZiBhbmQgJGxhc3QgKG5lIC5Sb2xlICJhc3Npc3RhbnQiKSB9fTzvvZxBc3Npc3RhbnTvvZw+e3stIGVuZCB9fQp7ey0gZW5kIH19"
+        srcOssPath: "cap-session/DeepSeek-R1-Distill-Qwen-7B-GGUF-lmstudio"
+      gpuConfig:
+        gpuMemorySize: 49152
+        gpuType: "fc.gpu.ada.1"
+      nasConfig: "auto"
+      description: "ollama backend 用于部署模型"
+      cpu: 8
+      concurrencyConfig:
+        reservedConcurrency: 1
+      timeout: 6000
+      instanceConcurrency: 10
+      diskSize: 10240
+      provisionConfig:
+        alwaysAllocateGPU: false
+        target: 1
+      memorySize: 65536
+      vpcConfig: "auto"
+      name: "${vars.projectName}-deepseek-r1"
+      region: "${vars.region}"
+  open-webui:
+    component: "fc3"
+    actions:
+      complete-deploy:
+      - run: "sleep 120"
+    props:
+      logConfig: "auto"
+      functionName: "${vars.projectName}-open-webui"
+      description: "open-webui 函数"
+      runtime: "custom-container"
+      cpu: 4
+      customContainerConfig:
+        image: "registry.${vars.region}.aliyuncs.com/aliyun-fc/open-webui:v0.5.14"
+        port: 9000
+      triggers:
+      - triggerConfig:
+          methods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "OPTIONS"
+          authType: "anonymous"
+          disableURLInternet: false
+        triggerName: "defaultTrigger"
+        qualifier: "LATEST"
+        triggerType: "http"
+      instanceConcurrency: 20
+      timeout: 600
+      customDomain:
+        protocol: "HTTP"
+        route:
+          path: "/*"
+          qualifier: "LATEST"
+        domainName: "auto"
+      diskSize: 10240
+      provisionConfig:
+        target: 1
+      memorySize: 8192
+      environmentVariables:
+        OLLAMA_BASE_URLS: "${resources.deepseek-r1.info.urlIntranet};${resources.deepseek-r1-14b.info.urlInternet}"
+        TASK_MODEL: "cap-deepseek-r1:latest"
+        PORT: "9000"
+        TZ: "Asia/Shanghai"
+        ENABLE_OPENAI_API: "false"
+        DEFAULT_MODELS: "cap-deepseek-r1:latest"
+        WEBUI_AUTH: "false"
+        ENABLE_MESSAGE_RATING: "false"
+        DEFAULT_USER_ROLE: "admin"
+        WEBUI_NAME: "CAP + Open WebUI + Ollama"
+        ENABLE_LOGIN_FORM: "false"
+        ENABLE_COMMUNITY_SHARING: "false"
+        DEFAULT_LOCALE: "zh_CN"
+        ENABLE_SIGNUP: "false"
+        OLLAMA_BASE_URL: "${resources.deepseek-r1.info.urlIntranet}"
+        WEBUI_BANNERS: "[{\"id\": \"1\", \"type\": \"warning\", \"title\": \"CAP提示\
+          \", \"content\": \"本案例演示 在 CAP 平台实现 Ollama 自定义模型与 Open WebUI, 使用 DeepSeek-R1-Distill-Qwen-7B\
+          \ 模型，建议及时清理资源。\", \"dismissible\": true, \"timestamp\": 1000}]"
+      region: "${vars.region}"
+  deepseek-r1-14b:
+    component: "model"
+    actions:
+      complete-deploy:
+      - plugin: "flow_api_registry"
+      complete-remove:
+      - plugin: "flow_api_registry"
+    props:
+      logConfig: "auto"
+      role: "acs:ram::${config(\"AccountID\")}:role/aliyundevsdefaultrole"
+      modelConfig:
+        framework: "ollama"
+        sourceType: "oss"
+        srcOssRegion: "cn-hangzhou"
+        srcOssBucket: "cap-demo-bucket-cn-hangzhou"
+        fmkOllamaConfig:
+          modelName: "deepseek-r1-14b"
+          modelfileParams: "{\"num_ctx\": 131072,\"stop\":[\"<｜begin▁of▁sentence｜\
+            >\",\"<｜end▁of▁sentence｜>\",\"<｜User｜>\",\"<｜Assistant｜>\"]}"
+          singleModelFile: "DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf"
+          modelfileTemplate: "e3stIGlmIC5TeXN0ZW0gfX17eyAuU3lzdGVtIH19e3sgZW5kIH19Cnt7LSByYW5nZSAkaSwgJF8gOj0gLk1lc3NhZ2VzIH19Cnt7LSAkbGFzdCA6PSBlcSAobGVuIChzbGljZSAkLk1lc3NhZ2VzICRpKSkgMX19Cnt7LSBpZiBlcSAuUm9sZSAidXNlciIgfX08772cVXNlcu+9nD57eyAuQ29udGVudCB9fQp7ey0gZWxzZSBpZiBlcSAuUm9sZSAiYXNzaXN0YW50IiB9fTzvvZxBc3Npc3RhbnTvvZw+e3sgLkNvbnRlbnQgfX17ey0gaWYgbm90ICRsYXN0IH19PO+9nGVuZOKWgW9m4paBc2VudGVuY2XvvZw+e3stIGVuZCB9fQp7ey0gZW5kIH19Cnt7LSBpZiBhbmQgJGxhc3QgKG5lIC5Sb2xlICJhc3Npc3RhbnQiKSB9fTzvvZxBc3Npc3RhbnTvvZw+e3stIGVuZCB9fQp7ey0gZW5kIH19"
+        srcOssPath: "DeepSeek-R1-Distill-Qwen-14B-GGUF"
+      gpuConfig:
+        gpuMemorySize: 49152
+        gpuType: "fc.gpu.ada.1"
+      nasConfig: "auto"
+      cpu: 8
+      timeout: 6000
+      diskSize: 10240
+      provisionConfig:
+        alwaysAllocateGPU: false
+        target: 1
+      memorySize: 65536
+      vpcConfig: "auto"
+      name: "${vars.projectName}-deepseek-r1-14b"
+      region: "${vars.region}"
